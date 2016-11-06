@@ -1,0 +1,86 @@
+#!/bin/bash
+
+c_c() {
+    echo
+    echo "*** Received SIGINT. Will go dying now. ***"
+    exit 255
+}
+trap c_c SIGINT
+
+error() {
+    echo "*** $@"
+    echo "Exiting."
+    exit 1
+}
+
+if [ "$(readlink -e .)" != "$(readlink -e /usr/src/linux)" ]; then
+    echo "You seem not to be in the current kernel's directory."
+    echo -n "Continue anyway? (Control-C to abort) "
+    read
+fi
+
+if type ccache &>/dev/null; then
+    export PATH=/usr/lib/ccache/bin:$PATH
+    export CCACHE_BASEDIR=/usr/src/
+fi
+
+j=$(($(nproc) * 3 / 2))
+echo "Compiling kernel using $j jobs ..."
+make -j$j all || error "Error while comiling kernel."
+
+echo "Installing modules ..."
+make modules_install || error "Error while installing modules."
+
+mountboot=
+if [ -d /boot ]; then
+    if [ -z "$(ls /boot)" ]; then
+        echo "/boot is empty."
+        if grep /boot /etc/fstab &>/dev/null; then
+            echo "/boot found in /etc/fstab. Will try to mount it."
+            mountboot=1
+        else
+            echo "/boot not found in /etc/fstab."
+        fi
+    fi
+else
+    error "/boot doesn't exist."
+fi
+
+if [ -n "$mountboot" ]; then
+    mount /boot || error "Error while mounting /boot."
+    echo "/boot mounted"
+fi
+
+echo "Rebuilding Kernel modules via Portage ..."
+emerge --ask=n @module-rebuild
+
+echo "Installing kernel to /boot ..."
+make install || error "Error while installing kernel into /boot."
+
+if type dracut &>/dev/null; then
+    echo "Generating initramfs ..."
+    dracut_tempdir="/tmp/dracut.$RANDOM"
+    mkdir -p "$dracut_tempdir/etc/conf.d"
+    echo '[ -n "$DRACUT_QUIET" ] && echo 0 >/proc/sys/kernel/printk' \
+        >"$dracut_tempdir/etc/conf.d/no-printk.conf"
+    ver=$(make -s kernelrelease)
+    dracut --force --kver "$ver" --include "$dracut_tempdir" /
+    rm -rf "$dracut_tempdir"
+fi
+
+if ls /boot/*.old &>/dev/null; then
+    rm -f /boot/*.old
+fi
+
+if type grub-mkconfig &>/dev/null; then
+    grub-mkconfig -o /boot/grub/grub.cfg
+fi
+
+if type grub2-mkconfig &>/dev/null; then
+    grub2-mkconfig -o /boot/grub/grub.cfg
+fi
+
+if [ -n "$mountboot" ]; then
+    umount /boot || error "Error while unmounting /boot. Exiting."
+    echo "/boot unmounted"
+fi
