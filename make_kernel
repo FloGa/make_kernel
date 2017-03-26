@@ -8,7 +8,7 @@ c_c() {
 trap c_c SIGINT
 
 error() {
-    echo "*** $@"
+    echo "*** $*"
     echo "Exiting."
     exit 1
 }
