@@ -25,11 +25,13 @@ if type ccache &>/dev/null; then
 fi
 
 j=$(($(nproc) * 3 / 2))
+makeprg=(make -j$j -k)
+
 echo "Compiling kernel using $j jobs ..."
-make -j$j all || error "Error while comiling kernel."
+"${makeprg[@]}" all || error "Error while comiling kernel."
 
 echo "Installing modules ..."
-make modules_install || error "Error while installing modules."
+"${makeprg[@]}" modules_install || error "Error while installing modules."
 
 echo "Rebuilding Kernel modules via Portage ..."
 emerge --ask=n @module-rebuild
