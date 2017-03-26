@@ -31,6 +31,9 @@ make -j$j all || error "Error while comiling kernel."
 echo "Installing modules ..."
 make modules_install || error "Error while installing modules."
 
+echo "Rebuilding Kernel modules via Portage ..."
+emerge --ask=n @module-rebuild
+
 mountboot=
 if [ -d /boot ]; then
     if [ -z "$(ls /boot)" ]; then
@@ -50,9 +53,6 @@ if [ -n "$mountboot" ]; then
     mount /boot || error "Error while mounting /boot."
     echo "/boot mounted"
 fi
-
-echo "Rebuilding Kernel modules via Portage ..."
-emerge --ask=n @module-rebuild
 
 echo "Installing kernel to /boot ..."
 make install || error "Error while installing kernel into /boot."
