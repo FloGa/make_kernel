@@ -28,67 +28,67 @@ j=$(($(nproc) * 3 / 2))
 makeprg=(make -j$j -k)
 
 compile() {
-echo "Compiling kernel using $j jobs ..."
-"${makeprg[@]}" all || error "Error while comiling kernel."
+    echo "Compiling kernel using $j jobs ..."
+    "${makeprg[@]}" all || error "Error while comiling kernel."
 }
 
 install() {
-echo "Installing modules ..."
-"${makeprg[@]}" modules_install || error "Error while installing modules."
+    echo "Installing modules ..."
+    "${makeprg[@]}" modules_install || error "Error while installing modules."
 
-echo "Rebuilding Kernel modules via Portage ..."
-emerge --ask=n @module-rebuild
+    echo "Rebuilding Kernel modules via Portage ..."
+    emerge --ask=n @module-rebuild
 
-mountboot=
-if [ -d /boot ]; then
-    if [ -z "$(ls /boot)" ]; then
-        echo "/boot is empty."
-        if grep /boot /etc/fstab &>/dev/null; then
-            echo "/boot found in /etc/fstab. Will try to mount it."
-            mountboot=1
-        else
-            echo "/boot not found in /etc/fstab."
+    mountboot=
+    if [ -d /boot ]; then
+        if [ -z "$(ls /boot)" ]; then
+            echo "/boot is empty."
+            if grep /boot /etc/fstab &>/dev/null; then
+                echo "/boot found in /etc/fstab. Will try to mount it."
+                mountboot=1
+            else
+                echo "/boot not found in /etc/fstab."
+            fi
         fi
+    else
+        error "/boot doesn't exist."
     fi
-else
-    error "/boot doesn't exist."
-fi
 
-if [ -n "$mountboot" ]; then
-    mount /boot || error "Error while mounting /boot."
-    echo "/boot mounted"
-fi
+    if [ -n "$mountboot" ]; then
+        mount /boot || error "Error while mounting /boot."
+        echo "/boot mounted"
+    fi
 
-echo "Installing kernel to /boot ..."
-make install || error "Error while installing kernel into /boot."
+    echo "Installing kernel to /boot ..."
+    make install || error "Error while installing kernel into /boot."
 
-if type dracut &>/dev/null; then
-    echo "Generating initramfs ..."
-    dracut_tempdir="/tmp/dracut.$RANDOM"
-    mkdir -p "$dracut_tempdir/etc/conf.d"
-    echo '[ -n "$DRACUT_QUIET" ] && echo 0 >/proc/sys/kernel/printk' \
-        >"$dracut_tempdir/etc/conf.d/no-printk.conf"
-    ver=$(make -s kernelrelease)
-    dracut --force --kver "$ver" --include "$dracut_tempdir" /
-    rm -rf "$dracut_tempdir"
-fi
+    if type dracut &>/dev/null; then
+        echo "Generating initramfs ..."
+        dracut_tempdir="/tmp/dracut.$RANDOM"
+        mkdir -p "$dracut_tempdir/etc/conf.d"
+        echo '[ -n "$DRACUT_QUIET" ] && echo 0 >/proc/sys/kernel/printk' \
+            >"$dracut_tempdir/etc/conf.d/no-printk.conf"
+        ver=$(make -s kernelrelease)
+        dracut --force --kver "$ver" --include "$dracut_tempdir" /
+        rm -rf "$dracut_tempdir"
+    fi
 
-if ls /boot/*.old &>/dev/null; then
-    rm -f /boot/*.old
-fi
+    if ls /boot/*.old &>/dev/null; then
+        rm -f /boot/*.old
+    fi
 
-if type grub-mkconfig &>/dev/null; then
-    grub-mkconfig -o /boot/grub/grub.cfg
-fi
+    if type grub-mkconfig &>/dev/null; then
+        grub-mkconfig -o /boot/grub/grub.cfg
+    fi
 
-if type grub2-mkconfig &>/dev/null; then
-    grub2-mkconfig -o /boot/grub/grub.cfg
-fi
+    if type grub2-mkconfig &>/dev/null; then
+        grub2-mkconfig -o /boot/grub/grub.cfg
+    fi
 
-if [ -n "$mountboot" ]; then
-    umount /boot || error "Error while unmounting /boot. Exiting."
-    echo "/boot unmounted"
-fi
+    if [ -n "$mountboot" ]; then
+        umount /boot || error "Error while unmounting /boot. Exiting."
+        echo "/boot unmounted"
+    fi
 }
 
 compile
