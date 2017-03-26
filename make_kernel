@@ -92,7 +92,11 @@ install() {
 }
 
 if [ -n "$1" ]; then
-    "${makeprg[@]}" "$@" || error "Error while making '$*'."
+    if [ "$*" = "install" ]; then
+        install
+    else
+        "${makeprg[@]}" "$@" || error "Error while making '$*'."
+    fi
 else
     compile
     install
