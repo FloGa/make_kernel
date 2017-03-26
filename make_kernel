@@ -91,5 +91,9 @@ install() {
     fi
 }
 
-compile
-install
+if [ -n "$1" ]; then
+    "${makeprg[@]}" "$@" || error "Error while making '$*'."
+else
+    compile
+    install
+fi
