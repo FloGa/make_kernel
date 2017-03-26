@@ -27,9 +27,12 @@ fi
 j=$(($(nproc) * 3 / 2))
 makeprg=(make -j$j -k)
 
+compile() {
 echo "Compiling kernel using $j jobs ..."
 "${makeprg[@]}" all || error "Error while comiling kernel."
+}
 
+install() {
 echo "Installing modules ..."
 "${makeprg[@]}" modules_install || error "Error while installing modules."
 
@@ -86,3 +89,7 @@ if [ -n "$mountboot" ]; then
     umount /boot || error "Error while unmounting /boot. Exiting."
     echo "/boot unmounted"
 fi
+}
+
+compile
+install
