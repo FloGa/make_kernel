@@ -25,7 +25,8 @@ if type ccache &>/dev/null; then
 fi
 
 j=$(($(nproc) * 3 / 2))
-makeprg=(make -j$j -k)
+l=$(nproc)
+makeprg=(make -j$j -l$l -k)
 
 compile() {
     echo "Compiling kernel using $j jobs ..."
