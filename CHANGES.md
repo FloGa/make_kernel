@@ -1,5 +1,7 @@
 # Changes in 0.7.0
 
+-   Add load-average parameter
+
 # Changes in 0.6.0
 
 -   Mount boot after recompiling modules
